@@ -3,9 +3,10 @@ from .models import Product, Video
 
 @admin.register(Product)
 class AdminProduct(admin.ModelAdmin):
-    list_display = ['name', 'price', 'image']
+    list_display = ['name', 'price', 'image_tag']
     list_filter = ['price']
     search_fields = ['name']
+    readonly_fields = ['image_tag']
 
 @admin.register(Video)
 class AdminProduct(admin.ModelAdmin):
