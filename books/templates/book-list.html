@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card-body">
+    <h4>Book List</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Title</th>
+                <th scope="col">Author</th>
+                <th scope="col">Price</th>
+                <th scope="col">Publisher</th>
+                <th scope="col">Image</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr>
+                <td>{{ book.title }}</td>
+                <td>{{ book.author }}</td>
+                <td>{{ book.price }}</td>
+                <td>{{ book.publisher }}</td>
+                <td><img src="/media/{{book.image}}" alt="image"></td>
+                <td>
+                    <a type="button" class="btn btn-success" href="{% url 'book_detail' book.id %}">Detail</a>
+                    <a type="button" class="btn btn-warning" href="{% url 'update' book.id %}">Update</a>
+                    <a type="button" class="btn btn-danger" href="{% url 'delete' book.id %}">Delete</a>
+                    <!-- <a type="button" class="btn btn-danger" href="/book-detail/{{ book.id }}">Detail</a> -->
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a type="button" class="btn btn-success" href="{% url 'book_create' %}">Create</a>
+</div>
+{% endblock %}
