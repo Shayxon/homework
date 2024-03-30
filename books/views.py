@@ -1,74 +1,71 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import View
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 from .models import Book
-from .forms import BookForm
-from django.urls import reverse_lazy
-from django.views.decorators.http import require_POST
-from django.core.mail import send_mail
-from django.conf import settings
+from .serializers import ItemSerializer
+from rest_framework import serializers
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+ 
+@api_view(['GET'])
+def ApiOverview(request):
+    api_urls = {
+        'all_items': '/',
+        'Search by Category': '/?category=category_name',
+        'Search by Subcategory': '/?subcategory=category_name',
+        'Add': '/create',
+        'Update': '/update/pk',
+        'Delete': '/item/pk/delete'
+    }
+ 
+    return Response(api_urls)
 
-class BookListView(View):
-    template_name = 'book-list.html'
-    
-    def get(self, request):
-        books = Book.objects.all().order_by('title')
-        return render(request, self.template_name, {'books': books})
 
-class BookDetailView(View):
-    template_name = 'book-detail.html'
+@api_view(['POST'])
+def add_items(request):
+    item = ItemSerializer(data=request.data)
+ 
+    # validating for already existing data
+    if Book.objects.filter(**request.data).exists():
+        raise serializers.ValidationError('This data already exists')
+ 
+    if item.is_valid():
+        item.save()
+        return Response(item.data)
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND)
     
-    def get(self, request, pk):
-        book = get_object_or_404(Book, pk=pk)
-        return render(request, self.template_name, {'book': book})
 
-class BookCreateView(View):
-    template_name = 'book-create.html'
+@api_view(['GET'])
+def view_items(request):
+     
+    # checking for the parameters from the URL
+    if request.query_params:
+        items = Book.objects.filter(**request.query_params.dict())
+    else:
+        items = Book.objects.all()
+ 
+    # if there is something in items else raise error
+    if items:
+        serializer = ItemSerializer(items, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND)
     
-    def get(self, request):
-        form = BookForm()
-        return render(request, self.template_name, {'form': form})
     
-    def post(self, request):
-        form = BookForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect(reverse_lazy('books'))
-        return render(request, self.template_name, {'form': form})
+@api_view(['POST'])
+def update_items(request, pk):
+    item = Book.objects.get(pk=pk)
+    data = ItemSerializer(instance=item, data=request.data)
+ 
+    if data.is_valid():
+        data.save()
+        return Response(data.data)
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
 
-class BookUpdateView(View):
-    template_name = 'update.html'
-    
-    def get(self, request, pk):
-        book = get_object_or_404(Book, pk=pk)
-        form = BookForm(instance=book)
-        return render(request, self.template_name, {'form': form})
-    
-    def post(self, request, pk):
-        book = get_object_or_404(Book, pk=pk)
-        form = BookForm(request.POST, request.FILES, instance=book)
-        if form.is_valid():
-            form.save()
-            return redirect(reverse_lazy('books'))
-        return render(request, self.template_name, {'form': form})
-
-class BookDeleteView(View):
-    template_name = 'book-delete.html'
-    
-    def get(self, request, pk):
-        book = get_object_or_404(Book, pk=pk)
-        return render(request, self.template_name, {'book': book})
-    
-    def post(self, request, pk):
-        book = get_object_or_404(Book, pk=pk)
-        book.delete()
-        return redirect(reverse_lazy('books'))
-
-@require_POST
-def contact(request):
-    name = request.POST['name']
-    email = request.POST['email']
-    message = request.POST['message']
-    message += f" my email: {email}"
-
-    send_mail(f"Hi i am {name}!", message, settings.EMAIL_HOST_USER, ['mamajonovibrokhimjon@gmail.com'])
-    return redirect('books')
+@api_view(['DELETE'])
+def delete_items(request, pk):
+    item = get_object_or_404(Book, pk=pk)
+    item.delete()
+    return Response(status=status.HTTP_202_ACCEPTED)
