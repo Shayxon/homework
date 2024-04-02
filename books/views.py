@@ -5,14 +5,15 @@ from .serializers import ItemSerializer
 from rest_framework import serializers
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 
+@swagger_auto_schema(method='POST', request_body=ItemSerializer)
 @api_view(['POST'])
 def add_items(request):
     item = ItemSerializer(data=request.data)
  
-    # validating for already existing data
     if Book.objects.filter(**request.data).exists():
-        raise serializers.ValidationError('This data already exists')
+        raise serializers.ValidationError('already exists')
  
     if item.is_valid():
         item.save()
@@ -23,14 +24,11 @@ def add_items(request):
 
 @api_view(['GET'])
 def view_items(request):
-     
-    # checking for the parameters from the URL
     if request.query_params:
         items = Book.objects.filter(**request.query_params.dict())
     else:
         items = Book.objects.all()
  
-    # if there is something in items else raise error
     if items:
         serializer = ItemSerializer(items, many=True)
         return Response(serializer.data)
